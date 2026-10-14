@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { ChatOpenAI } from "@langchain/openai";
-import { retrieve } from "./retrieval.mjs";
+import { retrieve } from "./retrieval.js";
 
 const model = new ChatOpenAI({
   model: process.env.MODEL_NAME,

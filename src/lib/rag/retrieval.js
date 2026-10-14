@@ -1,4 +1,4 @@
-import { embed, getIndex } from "./indexing.mjs";
+import { embed, getIndex } from "./indexing.js";
 
 const TOP_K = 5;
 

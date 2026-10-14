@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { askRAG } from "../../../src/lib/rag/synthesis.mjs";
+import { askRAG } from "../../../src/lib/rag/synthesis.js";
 
 export const runtime = "nodejs";
 
