@@ -1,6 +1,12 @@
 import "dotenv/config";
 import { ChatOpenAI } from "@langchain/openai";
 import { retrieve } from "./retrieval.js";
+import { GuardrailService } from "./guardrail.js";
+
+const guardrail = new GuardrailService(
+  process.env.LITELLM_API_KEY,
+  process.env.LITELLM_BASE_URL
+);
 
 const model = new ChatOpenAI({
   model: process.env.MODEL_NAME,
@@ -24,7 +30,19 @@ export async function askRAG(question) {
     throw new Error("Thiếu cấu hình LiteLLM trong file .env.");
   }
 
-  const normalizedQuestion = question.trim();
+  const rawQuestion = question.trim();
+
+  const inputCheck = await guardrail.validateInput(rawQuestion);
+  if (!inputCheck.passed) {
+    return {
+      answer: inputCheck.reason,
+      sources: [],
+      blockedByGuardrail: true,
+    };
+  }
+
+  const normalizedQuestion = inputCheck.sanitizedInput;
+
   const results = await retrieve(normalizedQuestion);
 
   const context = results
@@ -52,12 +70,14 @@ export async function askRAG(question) {
     },
   ]);
 
-  const answer = Array.isArray(response.content)
+  const rawAnswer = Array.isArray(response.content)
     ? response.content
-        .filter((item) => item.type === "text")
-        .map((item) => item.text)
-        .join("\n")
+      .filter((item) => item.type === "text")
+      .map((item) => item.text)
+      .join("\n")
     : String(response.content);
+
+  const answer = guardrail.sanitizePII(rawAnswer);
 
   return {
     answer,
