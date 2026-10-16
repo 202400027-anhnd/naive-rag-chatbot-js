@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { ChatOpenAI } from "@langchain/openai";
-import { retrieve } from "./retrieval.js";
-import { GuardrailService } from "./guardrail.js";
+import { retrieve } from "./retrieval";
+import { GuardrailService } from "./guardrail";
+import type { RAGResponse } from "./types";
 
 const guardrail = new GuardrailService(
   process.env.LITELLM_API_KEY,
@@ -17,7 +18,7 @@ const model = new ChatOpenAI({
   temperature: 0,
 });
 
-export async function askRAG(question) {
+export async function askRAG(question: string): Promise<RAGResponse> {
   if (typeof question !== "string" || !question.trim()) {
     throw new Error("Câu hỏi không được để trống.");
   }
@@ -35,13 +36,13 @@ export async function askRAG(question) {
   const inputCheck = await guardrail.validateInput(rawQuestion);
   if (!inputCheck.passed) {
     return {
-      answer: inputCheck.reason,
+      answer: inputCheck.reason || "Bị chặn bởi Guardrail.",
       sources: [],
       blockedByGuardrail: true,
     };
   }
 
-  const normalizedQuestion = inputCheck.sanitizedInput;
+  const normalizedQuestion = inputCheck.sanitizedInput || rawQuestion;
 
   const results = await retrieve(normalizedQuestion);
 
@@ -71,10 +72,10 @@ export async function askRAG(question) {
   ]);
 
   const rawAnswer = Array.isArray(response.content)
-    ? response.content
-      .filter((item) => item.type === "text")
-      .map((item) => item.text)
-      .join("\n")
+    ? (response.content as any[])
+        .filter((item) => item.type === "text")
+        .map((item) => item.text)
+        .join("\n")
     : String(response.content);
 
   const answer = guardrail.sanitizePII(rawAnswer);
