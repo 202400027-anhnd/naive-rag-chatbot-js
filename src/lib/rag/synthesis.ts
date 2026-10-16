@@ -1,35 +1,20 @@
 import "dotenv/config";
-import { ChatOpenAI } from "@langchain/openai";
 import { retrieve } from "./retrieval";
 import { GuardrailService } from "./guardrail";
+import { getChatModel } from "./model";
 import type { RAGResponse } from "./types";
 
 const guardrail = new GuardrailService(
-  process.env.LITELLM_API_KEY,
+  process.env.LITELLM_API_KEY || process.env.OPENAI_API_KEY,
   process.env.LITELLM_BASE_URL
 );
-
-const model = new ChatOpenAI({
-  model: process.env.MODEL_NAME,
-  apiKey: process.env.LITELLM_API_KEY,
-  configuration: {
-    baseURL: process.env.LITELLM_BASE_URL,
-  },
-  temperature: 0,
-});
 
 export async function askRAG(question: string): Promise<RAGResponse> {
   if (typeof question !== "string" || !question.trim()) {
     throw new Error("Câu hỏi không được để trống.");
   }
 
-  if (
-    !process.env.MODEL_NAME ||
-    !process.env.LITELLM_API_KEY ||
-    !process.env.LITELLM_BASE_URL
-  ) {
-    throw new Error("Thiếu cấu hình LiteLLM trong file .env.");
-  }
+  const model = getChatModel({ temperature: 0 });
 
   const rawQuestion = question.trim();
 
