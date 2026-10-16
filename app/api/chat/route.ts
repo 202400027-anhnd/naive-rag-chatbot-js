@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-import { askRAG } from "../../../src/lib/rag/synthesis.js";
+import { NextResponse, type NextRequest } from "next/server";
+import { askRAG } from "@/lib/rag/synthesis";
 
 export const runtime = "nodejs";
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { question } = body;
@@ -21,7 +21,7 @@ export async function POST(request) {
       answer: result.answer,
       sources: result.sources,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Chat API error:", error);
 
     return NextResponse.json(

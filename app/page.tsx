@@ -1,13 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+
+type SourceItem = {
+  document: string;
+  chunk?: number;
+  score: number;
+  content?: string;
+  excerpt?: string;
+};
+
+type MessageItem = {
+  role: "user" | "assistant";
+  content: string;
+  sources?: SourceItem[];
+};
 
 export default function Home() {
   const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<MessageItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const text = question.trim();
@@ -41,7 +55,7 @@ export default function Home() {
           sources: data.sources,
         },
       ]);
-    } catch (error) {
+    } catch (error: any) {
       setMessages((old) => [
         ...old,
         {
@@ -84,19 +98,19 @@ export default function Home() {
             </div>
             <div className="content">{message.content}</div>
 
-            {message.sources?.length > 0 && (
+            {message.sources && message.sources.length > 0 && (
               <details className="sources">
                 <summary>
                   Nguồn tham khảo ({message.sources.length})
                 </summary>
 
-                {message.sources.map((source) => (
-                  <div className="source" key={source.document}>
+                {message.sources.map((source, sIdx) => (
+                  <div className="source" key={`${source.document}-${sIdx}`}>
                     <strong>{source.document}</strong>
                     <span>
                       Similarity: {source.score}
                     </span>
-                    <p>{source.excerpt}</p>
+                    <p>{source.excerpt || source.content}</p>
                   </div>
                 ))}
               </details>

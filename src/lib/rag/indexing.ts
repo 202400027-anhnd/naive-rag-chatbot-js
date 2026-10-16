@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pipeline } from "@huggingface/transformers";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import type { IndexedDocument, RawDocumentChunk } from "./types";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const documentsDir = path.resolve(currentDir, "../../../documents");
@@ -17,11 +18,11 @@ const splitter = new RecursiveCharacterTextSplitter({
   chunkOverlap: CHUNK_OVERLAP,
 });
 
-let embedderPromise;
-let indexPromise;
+let embedderPromise: Promise<any> | undefined;
+let indexPromise: Promise<IndexedDocument[]> | undefined;
 let lastIndexSignature = "";
 
-async function readDocument(filename) {
+async function readDocument(filename: string): Promise<string> {
   const filePath = path.join(documentsDir, filename);
 
   if (filename.toLowerCase().endsWith(".txt")) {
@@ -30,7 +31,7 @@ async function readDocument(filename) {
 
   if (filename.toLowerCase().endsWith(".pdf")) {
     const data = await readFile(filePath);
-    const parser = new PDFParse({ data });
+    const parser = new (PDFParse as any)({ data });
 
     try {
       const result = await parser.getText();
@@ -51,12 +52,12 @@ async function readDocument(filename) {
   throw new Error(`Định dạng tài liệu không được hỗ trợ: ${filename}`);
 }
 
-function getEmbedder() {
+function getEmbedder(): Promise<any> {
   if (!embedderPromise) {
     embedderPromise = pipeline(
       "feature-extraction",
       "Xenova/multilingual-e5-small"
-    ).catch((error) => {
+    ).catch((error: unknown) => {
       embedderPromise = undefined;
       throw error;
     });
@@ -65,7 +66,7 @@ function getEmbedder() {
   return embedderPromise;
 }
 
-export async function embed(input, prefix) {
+export async function embed(input: string, prefix: string): Promise<number[]> {
   const embedder = await getEmbedder();
 
   const output = await embedder(`${prefix}: ${input}`, {
@@ -76,8 +77,8 @@ export async function embed(input, prefix) {
   return Array.from(output.data);
 }
 
-async function buildIndex(filenames) {
-  const documents = [];
+async function buildIndex(filenames: string[]): Promise<IndexedDocument[]> {
+  const documents: RawDocumentChunk[] = [];
 
   for (const filename of filenames) {
     const text = await readDocument(filename);
@@ -107,7 +108,7 @@ async function buildIndex(filenames) {
   );
 }
 
-export async function getIndex() {
+export async function getIndex(): Promise<IndexedDocument[]> {
   const filenames = (await readdir(documentsDir))
     .filter((name) => /\.(txt|pdf)$/i.test(name))
     .sort();
